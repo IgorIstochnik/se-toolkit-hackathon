@@ -50,7 +50,7 @@ Version 2 builds upon Version 1:
 - deploy and make it available to use.
 
 > 🟪 **Notes**
-> 1. The product must have these components each fulfilling a useful function: LLM-powered agent (preferably `nanobot`), Frontend, Backend, Database.
+> 1. The product must have these components each fulfilling a useful function: end-user-facing LLM agent (e.g. `nanobot`), Frontend, Backend, Database.
 > 2. You are free to use the setup from Lab 8 as the base to iterate from.
 > 3. `Telegram` bots deployed on a university VM can fail to receive messages when hosted there.
 
