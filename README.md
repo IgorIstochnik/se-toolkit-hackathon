@@ -1,170 +1,172 @@
-# Lab 9 - Quiz and Hackathon
+# Matrix Cafe Menu Helper
 
-The lab opens with a quiz and then kicks off the hackathon.
+An LLM-powered nanobot that helps Innopolis University students choose meals at the Matrix cafe by parsing menus, showing prices, and recommending balanced meal combos.
 
-To get the full point for the lab, you need to:
+## Demo
 
-- Pass Tasks 1, 2, 3 during the lab AND
-- Finish Tasks 4 and 5 by the usual deadline of Thursday 23:59.
+> _Screenshot of the nanobot recommending a meal combo_
 
-Each student builds their own project:
+![Demo placeholder - will be replaced with actual screenshot](demo-placeholder.png)
 
-- Go from an idea to a deployed product.
-- Use agents and LLMs throughout.
+## Product Context
 
-----
+### End Users
+Students and staff of Innopolis University who eat at the Matrix cafe.
 
-## Task 1 (graded by TA after the lab)
+### Problem
+It can be hard to decide what to eat when you arrive at the cafe, especially when you want a balanced meal within your budget.
 
-Pen and paper quiz:
+### Solution
+A chat-based nanobot that:
+- Shows today's Matrix cafe menu with prices and meal types
+- Recommends meals based on your preferences and budget
+- Suggests balanced lunch combos (salad + soup + main + drink)
 
-- 20 mins;
-- closed book, no devices;
-- you get 3 random questions from the question bank;
-- answer at least 2.
+## Features
 
-## Task 2 (approved by TA during the lab)
+### Implemented (Version 1)
+- ✅ Menu scraper/parsing module (with sample data fallback)
+- ✅ SQLite database for storing menu items with prices, ingredients, and meal types
+- ✅ LLM-powered nanobot for meal recommendations
+- ✅ Interactive CLI interface
+- ✅ Filter by meal type (salad, soup, main course, drink, dessert)
+- ✅ Filter by budget
 
-Ideate and plan your project.
+### Implemented (Version 2)
+- ✅ Balanced meal combo generator
+- ✅ Docker configuration for all services
+- ✅ Deployment-ready
 
-### Project idea
+### Not Yet Implemented
+- [ ] Live web scraping from Matrix cafe website/social media (uses sample data for now)
+- [ ] Scheduled auto-refresh of menu data
+- [ ] Web UI frontend
+- [ ] User preference learning over time
 
-The project idea must be:
+## Usage
 
-- something simple to build;
-- clearly useful;
-- easy to explain.
+### Prerequisites
+- Python 3.11+
+- pip
 
-Define and show to your TA:
+### Running Locally
 
-- End-user of the product
-- What problem your product solves for the end-user?
-- The product idea in one short sentence.
-- What is the product's core feature?
+1. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-### Implementation plan
+2. Run the nanobot:
+   ```bash
+   python nanobot/bot.py
+   ```
 
-When the idea is approved, produce a plan for two product versions.
+3. Interact with the bot:
+   - Type `menu` to see today's menu
+   - Ask for recommendations: "What should I eat today?"
+   - Request combos: "Recommend a combo under 300₽"
+   - Filter by type: "Show me salads"
+   - Filter by budget: "I want something cheap"
 
-Version 1 does one core thing well:
+### Example Queries
+```
+You: menu
+Bot: Here's today's Matrix cafe menu:
+  **SALAD**:
+    • Цезарь с курицей - 180₽ 200g
+      Classic Caesar salad with chicken
+  **SOUP**:
+    • Борщ - 120₽ 300ml
+      Traditional beet soup
+  ...
 
-- Pick the one feature most valuable to the end-user and relatively easy to implement;
-- It is a functioning product, not a prototype;
-- Must be shown to the TA upon completion for feedback.
+You: recommend a combo under 300₽
+Bot: **Balanced Lunch Combo:**
+  • Цезарь с курицей (salad) - 180₽
+  • Борщ (soup) - 120₽
+  
+  **Total: 300₽**
+```
 
-Version 2 builds upon Version 1:
+## Deployment
 
-- Improves the initial feature or adds another one on top;
-- Address TA feedback from the lab;
-- Deploy and make it available for use.
+### Requirements
+- OS: Ubuntu 24.04 (or similar Linux)
+- Docker and Docker Compose installed
 
-The product must have the following components, each fulfilling a useful function:
+### Step-by-Step Deployment
 
-- backend;
-- database;
-- end-user-facing client: web app, mobile app, or LLM-powered agent, e.g. `nanobot`.
+1. Clone the repository:
+   ```bash
+   git clone <repo-url>
+   cd se-toolkit-hackathon
+   ```
 
-Note:
+2. Build and start with Docker Compose:
+   ```bash
+   docker compose up -d
+   ```
 
-- You can use the setup from Lab 8 or start from scratch.
-- `Telegram` bots are blocked on university VMs.
+3. Access the nanobot:
+   ```bash
+   docker attach matrix-cafe-bot
+   ```
 
-## Task 3 (approved by TA during the lab)
+### Manual Deployment (without Docker)
 
-Implement Version 1 outlined in the plan:
+1. Ensure Python 3.11+ is installed:
+   ```bash
+   python3 --version
+   ```
 
-- Build one core feature;
-- Follow best practices and git workflow;
-- Test it yourself and fix bugs;
-- Have the TA try it as a user;
-- Take note of the TA feedback;
-- Get TA's approval for the task to be marked as DONE.
+2. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-## Task 4
+3. Run the bot:
+   ```bash
+   python nanobot/bot.py
+   ```
 
-Implement and deploy Version 2 outlined in the plan:
+### Architecture
+```
+┌─────────────────┐     ┌──────────────┐     ┌──────────────┐
+│   Menu Scraper  │────>│  SQLite DB   │────>│  Nanobot     │
+│   (Python)      │     │  (menu.db)   │     │  (LLM Agent) │
+│                 │     │              │     │              │
+└─────────────────┘     └──────────────┘     └──────────────┘
+                                                    │
+                                              User queries:
+                                              "What's good today?"
+                                              "Recommend a combo"
+```
 
-- Build and polish functionality;
-- Take TA feedback into account;
-- Push all code to the GitHub repo (see the detailed instructions below);
-- Follow best practices and git workflow;
-- Document your solution;
-- Dockerize all services;
-- Deploy it to be accessible to use.
+## Project Structure
+```
+se-toolkit-hackathon/
+├── scraper/
+│   ├── scraper.py          # Menu scraping and parsing module
+│   └── README.md
+├── database/
+│   ├── db.py               # SQLite database module
+│   └── README.md
+├── nanobot/
+│   ├── bot.py              # LLM agent for meal recommendations
+│   └── README.md
+├── docker/
+│   └── (Docker configs)
+├── Dockerfile              # Container configuration
+├── docker-compose.yml      # Multi-service orchestration
+├── requirements.txt        # Python dependencies
+├── LICENSE                 # MIT License
+├── .gitignore
+└── README.md
+```
 
-Version 2 can be completed during the lab or after it, before the usual deadline.
-
-## Task 5 (demo and PDF submitted through Moodle)
-
-Submit a presentation with five slides:
-
-1. Title:
-
-   - Product title
-   - Your name
-   - Your university email
-   - Your group
-
-2. Context:
-
-   - End-user of the product
-   - What problem your product solves
-   - The product idea in one short sentence
-
-3. Implementation:
-
-   - How you built the product
-   - What went into Version 1 and Version 2
-   - What TA feedback points you addressed
-
-4. Demo:
-
-   - Pre-recorded video demonstration of Version 2 with voice-over (no longer than 2 minutes).
-   - _Note:_ **This is the most important part of the presentation**.
-
-5. Links:
-
-   - Link and QR code for each of these:
-     - The GitHub repo with the product code
-     - Deployed product (latest version)
-
-----
-
-## Publishing the product code on GitHub
-
-- Publish the product code in a repository on `GitHub`.
-
-  The repository must be called `se-toolkit-hackathon`.
-
-- Add the MIT license file to make your product open-source.
-
-- Add `README.md` in the product repository.
-
-  `README.md` structure:
-
-  - Product name (as title)
-
-  - One-line description
-
-  - Demo:
-    - A couple of relevant screenshots of the product
-
-  - Product context:
-
-    - End users
-    - Problem that your product solves for end users
-    - Your solution
-
-  - Features:
-
-    - Implemented and not yet implemented features
-
-  - Usage:
-
-    - Explain how to use your product
-
-  - Deployment:
-
-    - Which OS the VM should run on (you may assume `Ubuntu 24.04` like on your university VMs)
-    - What should be installed on the VM
-    - Step-by-step deployment instructions
+## Tech Stack
+- **Backend**: Python 3.11
+- **Database**: SQLite
+- **Agent**: Custom LLM-powered nanobot
+- **Deployment**: Docker Compose
+- **Web Scraping**: BeautifulSoup + Requests

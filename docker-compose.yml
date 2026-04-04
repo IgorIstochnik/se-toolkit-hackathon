@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  nanobot:
+    build: .
+    container_name: matrix-cafe-bot
+    volumes:
+      - ./data:/app/data
+    stdin_open: true
+    tty: true
+    environment:
+      - PYTHONUNBUFFERED=1
+      - MODE=bot
+    command: ["python", "-u", "nanobot/bot.py"]
+
+  scheduler:
+    build: .
+    container_name: menu-scheduler
+    volumes:
+      - ./data:/app/data
+    environment:
+      - PYTHONUNBUFFERED=1
+      - MODE=scheduler
+    command: ["python", "-u", "scraper/scheduler.py"]
