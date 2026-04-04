@@ -18,14 +18,18 @@ It can be hard to decide what to eat when you arrive at the cafe, especially whe
 
 ### Solution
 A chat-based nanobot that:
-- Shows today's Matrix cafe menu with prices and meal types
+- Scrapes the Matrix cafe Telegram channel (`@matrixfood`) where daily menus are posted as images
+- Uses OCR (Tesseract) to extract text from menu images
+- Shows today's menu with prices and meal types
 - Recommends meals based on your preferences and budget
 - Suggests balanced lunch combos (salad + soup + main + drink)
 
 ## Features
 
 ### Implemented (Version 1)
-- ✅ Menu scraper/parsing module (with sample data fallback)
+- ✅ Telegram channel scraper that extracts menu images from `@matrixfood`
+- ✅ OCR-based menu text extraction (Tesseract with Russian + English support)
+- ✅ Menu text parser that converts OCR output into structured items with sections (salads, soups, etc.)
 - ✅ SQLite database for storing menu items with prices, ingredients, and meal types
 - ✅ LLM-powered nanobot for meal recommendations
 - ✅ Interactive CLI interface
@@ -33,13 +37,12 @@ A chat-based nanobot that:
 - ✅ Filter by budget
 
 ### Implemented (Version 2)
-- ✅ Balanced meal combo generator
-- ✅ Docker configuration for all services
-- ✅ Deployment-ready
+- ✅ Balanced meal combo generator with budget awareness
+- ✅ Menu scheduler for periodic auto-refresh
+- ✅ Docker configuration with Tesseract OCR installed
+- ✅ Deployment script (`./deploy.sh`)
 
 ### Not Yet Implemented
-- [ ] Live web scraping from Matrix cafe website/social media (uses sample data for now)
-- [ ] Scheduled auto-refresh of menu data
 - [ ] Web UI frontend
 - [ ] User preference learning over time
 
@@ -131,15 +134,17 @@ Bot: **Balanced Lunch Combo:**
 
 ### Architecture
 ```
-┌─────────────────┐     ┌──────────────┐     ┌──────────────┐
-│   Menu Scraper  │────>│  SQLite DB   │────>│  Nanobot     │
-│   (Python)      │     │  (menu.db)   │     │  (LLM Agent) │
-│                 │     │              │     │              │
-└─────────────────┘     └──────────────┘     └──────────────┘
-                                                    │
-                                              User queries:
-                                              "What's good today?"
-                                              "Recommend a combo"
+┌──────────────────────┐     ┌──────────────┐     ┌──────────────┐
+│ Telegram Channel     │     │  SQLite DB   │     │  Nanobot     │
+│ @matrixfood          │────>│  (menu.db)   │────>│  (CLI Agent) │
+│ (menu images)        │     │              │     │              │
+└──────────────────────┘     └──────────────┘     └──────────────┘
+        │
+        ▼
+┌──────────────────────┐     ┌──────────────┐
+│ Image Extractor      │────>│ Tesseract OCR│
+│ (BS4 + requests)     │     │ (rus+eng)    │
+└──────────────────────┘     └──────────────┘
 ```
 
 ## Project Structure
@@ -167,6 +172,8 @@ se-toolkit-hackathon/
 ## Tech Stack
 - **Backend**: Python 3.11
 - **Database**: SQLite
-- **Agent**: Custom LLM-powered nanobot
-- **Deployment**: Docker Compose
+- **Agent**: Custom nanobot with intent parsing
 - **Web Scraping**: BeautifulSoup + Requests
+- **OCR**: Tesseract (Russian + English)
+- **Image Processing**: Pillow
+- **Deployment**: Docker Compose
