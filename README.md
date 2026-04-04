@@ -122,12 +122,25 @@ Bot: **Balanced Lunch Combo:**
    python3 --version
    ```
 
-2. Install dependencies:
+2. Install system dependencies (Tesseract OCR):
    ```bash
+   sudo apt update
+   sudo apt install -y tesseract-ocr tesseract-ocr-rus tesseract-ocr-eng
+   ```
+
+3. Create a virtual environment and install Python dependencies:
+   ```bash
+   python3 -m venv venv
+   source venv/bin/activate
    pip install -r requirements.txt
    ```
 
-3. Run the bot:
+   > **Note:** If `python3 -m venv` is not available, install it first:
+   > ```bash
+   > sudo apt install python3.12-venv
+   > ```
+
+4. Run the bot:
    ```bash
    python nanobot/bot.py
    ```
