@@ -243,16 +243,25 @@ prices, and brief explanations of why you're recommending them."""
 
 def main():
     """Main entry point for the nanobot."""
-    # Initialize database with sample data for demo
     db = MenuDatabase("menu.db")
-    
-    # Check if database has data, if not populate with sample
+
+    # Try to scrape real menu from Telegram channel
     if not db.get_latest_menu():
-        scraper = MatrixCafeScraper()
-        sample_menu = scraper.parse_sample_menu()
-        db.insert_menu(sample_menu)
-        print("Loaded sample menu data.")
-    
+        print("No menu data found. Attempting to scrape @matrixfood channel...")
+        try:
+            scraper = MatrixCafeScraper()
+            menu = scraper.scrape_today_menu()
+            if menu:
+                db.insert_menu(menu)
+                print(f"Loaded {len(menu)} menu items from Telegram channel.")
+            else:
+                raise ValueError("No items scraped")
+        except Exception as e:
+            print(f"Scraping failed ({e}). Loading sample data for demo.")
+            scraper = MatrixCafeScraper()
+            db.insert_menu(scraper.parse_sample_menu())
+            print("Loaded sample menu data.")
+
     bot = MatrixCafeBot(db)
     bot.interactive_mode()
 
