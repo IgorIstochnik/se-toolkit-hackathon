@@ -16,8 +16,6 @@ Usage:
 """
 
 import requests
-from requests.adapters import HTTPAdapter
-from urllib3.util.retry import Retry
 from bs4 import BeautifulSoup
 from datetime import datetime
 from typing import List, Dict, Optional
@@ -237,17 +235,13 @@ class MatrixCafeScraper:
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
                           "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
         })
-        # Disable retries to fail fast on blocked CDNs
-        adapter = HTTPAdapter(max_retries=Retry(total=0, backoff_factor=0, status_forcelist=[]))
-        self.session.mount("https://", adapter)
-        self.session.mount("http://", adapter)
         self.ocr_parser = MenuImageOCR()
 
     # ---- Step 1: Fetch channel web preview ----
 
     def fetch_channel(self) -> str:
         """Fetch the Telegram channel web preview HTML."""
-        response = self.session.get(self.CHANNEL_URL, timeout=5)
+        response = self.session.get(self.CHANNEL_URL, timeout=15)
         response.raise_for_status()
         return response.text
 
@@ -307,7 +301,7 @@ class MatrixCafeScraper:
     def download_image(self, url: str):
         """Download an image from URL and return as PIL Image."""
         try:
-            response = self.session.get(url, timeout=2)
+            response = self.session.get(url, timeout=15)
             response.raise_for_status()
             img = Image.open(io.BytesIO(response.content))
             return img
@@ -318,7 +312,7 @@ class MatrixCafeScraper:
     def download_image_to_file(self, url: str, filepath: str) -> bool:
         """Download image and save to file. Returns True on success."""
         try:
-            response = self.session.get(url, timeout=2)
+            response = self.session.get(url, timeout=15)
             response.raise_for_status()
             with open(filepath, 'wb') as f:
                 f.write(response.content)
@@ -372,8 +366,8 @@ class MatrixCafeScraper:
             print(f"Error fetching channel: {e}")
             return self.parse_sample_menu()
 
-        # Step 2: Extract image URLs from recent posts
-        image_data = self.extract_image_urls(html, max_images=1)
+        # Step 2: Extract image URLs from recent posts (up to 5 menu images)
+        image_data = self.extract_image_urls(html, max_images=5)
 
         if not image_data:
             print("No menu images found in channel.")
