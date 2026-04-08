@@ -74,11 +74,15 @@ class TelethonMenuScraper:
         """Create TelegramClient with MTProto proxy."""
         proxy = self.config["proxy"]
 
+        # Telethon MTProto proxy format:
+        # (proxy_type_string, host, port, secret)
+        mtproto_proxy = ("mtproto", proxy[0], proxy[1], proxy[2])
+
         return TelegramClient(
             self.config["session_name"],
             self.config["api_id"],
             self.config["api_hash"],
-            proxy=proxy,
+            proxy=mtproto_proxy,
             connection_retries=10,
             retry_delay=2,
         )
