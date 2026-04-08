@@ -2,10 +2,10 @@
 Matrix Cafe Menu Scraper via Telegram API (Telethon)
 
 Connects to Telegram via MTProto to download menu photos from @matrixfood channel.
-Uses SOCKS5 proxy to bypass connection restrictions.
+Uses MTProto proxy to bypass connection restrictions.
 
 Setup:
-    pip install telethon cryptg python-socks[asyncio] Pillow pytesseract
+    pip install telethon cryptg Pillow pytesseract
     sudo apt install -y tesseract-ocr tesseract-ocr-rus
 
 Usage:
@@ -25,6 +25,7 @@ from typing import List, Dict, Optional
 
 try:
     from telethon import TelegramClient
+    from telethon.network import ConnectionTcpMTProxy
     TELETHON_AVAILABLE = True
 except ImportError:
     TELETHON_AVAILABLE = False
@@ -46,17 +47,19 @@ from scraper.scraper import MenuItem, MenuImageOCR
 # ============================================================
 # TELEGRAM API CONFIGURATION
 # Get credentials at https://my.telegram.org
+# MTProto proxy: (host, port, secret_hex)
 # ============================================================
 TELEGRAM_CONFIG = {
     "api_id": int(os.environ.get("TG_API_ID", "36586474")),
     "api_hash": os.environ.get("TG_API_HASH", "74ce76defbf51a85fdc33251683a12b5"),
     "channel": "matrixfood",
     "session_name": "matrix_scraper",
-    # SOCKS5 proxy (Tor on port 9050, or any other SOCKS5 proxy)
-    "proxy": {
-        "host": os.environ.get("PROXY_HOST", "127.0.0.1"),
-        "port": int(os.environ.get("PROXY_PORT", "9050")),
-    }
+    # MTProto proxy (host, port, secret_hex)
+    "proxy": (
+        os.environ.get("MTROTO_HOST", "89.169.167.123"),
+        int(os.environ.get("MTROTO_PORT", "443")),
+        os.environ.get("MTROTO_SECRET", "eeb827aa7dd083babc9a303f21c9f04e09766b2e7275"),
+    )
 }
 
 
@@ -68,15 +71,14 @@ class TelethonMenuScraper:
         self.ocr_parser = MenuImageOCR()
 
     def _create_client(self) -> TelegramClient:
-        """Create TelegramClient with SOCKS5 proxy."""
+        """Create TelegramClient with MTProto proxy."""
         proxy = self.config["proxy"]
 
         return TelegramClient(
             self.config["session_name"],
             self.config["api_id"],
             self.config["api_hash"],
-            # Telethon accepts proxy as tuple: (type, host, port, user?, pass?)
-            proxy=("socks5", proxy["host"], proxy["port"]),
+            proxy=proxy,
             connection_retries=10,
             retry_delay=2,
         )
@@ -89,7 +91,7 @@ class TelethonMenuScraper:
 
         client = self._create_client()
         proxy = self.config["proxy"]
-        print(f"Connecting to Telegram via SOCKS5 proxy {proxy['host']}:{proxy['port']}...")
+        print(f"Connecting to Telegram via MTProto proxy {proxy[0]}:{proxy[1]}...")
 
         try:
             await client.connect()
@@ -192,13 +194,12 @@ class TelethonMenuScraper:
 async def login():
     """Interactive login to create session file."""
     config = TELEGRAM_CONFIG
-    proxy = config["proxy"]
 
     client = TelegramClient(
         config["session_name"],
         config["api_id"],
         config["api_hash"],
-        proxy=("socks5", proxy["host"], proxy["port"]),
+        proxy=config["proxy"],
     )
 
     print("Starting login via proxy...")
