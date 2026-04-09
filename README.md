@@ -5,8 +5,8 @@ An LLM-powered nanobot that helps Innopolis University students choose meals at 
 ## Demo
 
 > _Screenshot of the nanobot recommending a meal combo_
+> <img width="923" height="947" alt="image" src="https://github.com/user-attachments/assets/ccc89018-9e19-472a-8431-06c0767511a3" />
 
-![Demo placeholder - will be replaced with actual screenshot](demo-placeholder.png)
 
 ## Product Context
 
