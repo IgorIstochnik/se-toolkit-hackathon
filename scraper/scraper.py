@@ -103,15 +103,23 @@ class MenuImageOCR:
         "завтраки": "breakfast",
     }
 
-    # Price pattern: number followed by ₽ or руб
-    PRICE_PATTERN = re.compile(r'(\d+)\s*(?:₽|руб\.?|rub|rub\.)', re.IGNORECASE)
+    # Price patterns: number followed by various OCR misrecognitions of ₽
+    PRICE_PATTERN = re.compile(
+        r'(\d+)\s*(?:₽|руб\.?|rub|rub\.|рп|рр|rp|тр|тр\.|р\.)\b',
+        re.IGNORECASE
+    )
+
+    # Also match bare number at end of line (common in menu images)
+    END_PRICE_PATTERN = re.compile(
+        r'(\d{2,4})\s*(?:₽|руб|руб\.|рп|рр|rp|тр|тр\.|р\.|P|p|1p|lр)?\s*$',
+        re.IGNORECASE
+    )
 
     # Item line patterns: "item name - price" or "item name price"
     ITEM_LINE_PATTERNS = [
-        re.compile(r'(.+?)\s*[-–—]\s*(\d+)\s*₽', re.IGNORECASE),
+        re.compile(r'(.+?)\s*[-–—]\s*(\d+)\s*(?:₽|руб\.?|руб|рп|рр|rp|тр|тр\.|р\.|P)\b', re.IGNORECASE),
+        re.compile(r'(.+?)\s*(\d+)\s*(?:₽|руб\.?|руб|рп|рр|rp|тр|тр\.|р\.|P)\b', re.IGNORECASE),
         re.compile(r'(.+?)\s*(\d+)\s*₽', re.IGNORECASE),
-        re.compile(r'(.+?)\s*[-–—]\s*(\d+)\s*руб\.?', re.IGNORECASE),
-        re.compile(r'(.+?)\s+(\d+)\s*руб\.?', re.IGNORECASE),
     ]
 
     def __init__(self):
@@ -167,6 +175,27 @@ class MenuImageOCR:
 
     def _parse_item_line(self, line: str) -> Optional[MenuItem]:
         """Try to parse a menu item from a single OCR line."""
+        # Clean up the line: take text before "/" if present
+        # (after "/" is often mangled English translation in menu images)
+        if '/' in line:
+            main_part = line.split('/')[0].strip()
+            # Extract price from the part after "/" (price is often at the end of full line)
+            price_match = self.END_PRICE_PATTERN.search(line)
+            if price_match:
+                name = self._clean_name(main_part)
+                if name and len(name) >= 3:
+                    price = float(price_match.group(1))
+                    # Filter out set lunch price (e.g. "КОМПЛЕКСНЫЙ ОБЕД 330")
+                    if 'комплекс' in name.lower() or 'set lunch' in name.lower():
+                        return None
+                    return MenuItem(
+                        name=name,
+                        meal_type="other",
+                        price=price
+                    )
+            # Also try the standard patterns on the main part
+            line = main_part
+
         for pattern in self.ITEM_LINE_PATTERNS:
             match = pattern.search(line)
             if match:
@@ -174,16 +203,22 @@ class MenuImageOCR:
                 price = float(match.group(2))
 
                 # Filter out noise
-                if len(name) < 2 or len(name) > 80:
+                if len(name) < 3 or len(name) > 80:
                     continue
 
                 # Skip dates
                 if re.match(r'^\d{1,2}[./-]\d{1,2}', name):
                     continue
 
-                # Skip common noise words
-                noise_words = ['the', 'and', 'or', 'no', 'yes', 'да', 'нет', 'the', 'a', 'an']
-                if name.lower() in noise_words:
+                # Skip common noise words and headers
+                noise = ['menu', 'the', 'and', 'or', 'no', 'yes', 'да', 'нет',
+                         'обеда', 'lunch', 'dinner', 'breakfast', 'выход',
+                         'weight', 'вес', 'меню']
+                if name.lower().strip('. ') in noise:
+                    continue
+
+                # Skip if looks like a header (all caps, no numbers except price)
+                if name.isupper() and len(name) < 20 and not re.search(r'[0-9]', name):
                     continue
 
                 return MenuItem(
@@ -191,6 +226,18 @@ class MenuImageOCR:
                     meal_type="other",
                     price=price
                 )
+
+        # Fallback: try end-of-line price pattern
+        price_match = self.END_PRICE_PATTERN.search(line)
+        if price_match:
+            name = line[:price_match.start()].strip()
+            name = self._clean_name(name)
+            if len(name) >= 3:
+                price = float(price_match.group(1))
+                # Skip set lunch
+                if 'комплекс' in name.lower() or 'set lunch' in name.lower():
+                    return None
+                return MenuItem(name=name, meal_type="other", price=price)
 
         return None
 
