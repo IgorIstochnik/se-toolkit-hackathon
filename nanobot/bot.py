@@ -57,10 +57,11 @@ prices, and brief explanations of why you're recommending them."""
         for meal_type, items in menu_by_type.items():
             output.append(f"\n**{meal_type.upper()}**:")
             for item in items:
-                output.append(f"  • {item['name']} - {item['price']}₽ {item.get('weight', '')}")
+                weight = f" {item.get('weight', '')}" if item.get('weight') else ''
+                output.append(f"  • {item['name']} - {item['price']}₽{weight}")
                 if item.get("description"):
                     output.append(f"    {item['description']}")
-        
+
         return "\n".join(output) if output else "No menu available for today."
     
     def recommend_meal(

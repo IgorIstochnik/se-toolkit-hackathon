@@ -130,16 +130,19 @@ class MenuImageOCR:
         items = []
         lines = ocr_text.strip().split('\n')
         self.current_section = "other"
+        i = 0
 
-        for line in lines:
-            line = line.strip()
+        while i < len(lines):
+            line = lines[i].strip()
             if not line:
+                i += 1
                 continue
 
             # Check if this line is a section header
             section = self._detect_section(line)
             if section:
                 self.current_section = section
+                i += 1
                 continue
 
             # Try to extract menu item (name + price)
@@ -147,7 +150,32 @@ class MenuImageOCR:
             if item:
                 item.date = date or datetime.now().strftime("%Y-%m-%d")
                 item.meal_type = self.current_section
+
+                # Look ahead for weight (e.g. "120 г", "250 гр", "200g")
+                if i + 1 < len(lines):
+                    next_line = lines[i + 1].strip()
+                    weight_match = re.search(r'(\d+)\s*(?:г|гр|g|ml)\b', next_line, re.IGNORECASE)
+                    if weight_match:
+                        item.weight = f"{weight_match.group(1)}г"
+                        i += 1  # skip weight line
+
+                # Look ahead for ingredients (text in parentheses)
+                if i + 1 < len(lines):
+                    next_line = lines[i + 1].strip()
+                    if next_line.startswith('('):
+                        # Extract ingredients before the "/"
+                        ingredients_text = next_line.split('/')[0].strip('() ')
+                        if ingredients_text:
+                            # Split by comma
+                            raw_ingredients = [ing.strip() for ing in ingredients_text.split(',') if ing.strip()]
+                            item.ingredients = raw_ingredients
+                        i += 1  # skip ingredients line
+
                 items.append(item)
+                i += 1
+                continue
+
+            i += 1
 
         return items
 
@@ -501,7 +529,12 @@ class MatrixCafeScraper:
 
         print(f"\nExtracted {len(unique_items)} unique menu items from {len(filepaths)} image(s):")
         for item in unique_items:
-            print(f"  [{item.meal_type:12s}] {item.name:25s} {item.price:5.0f}₽")
+            weight_str = f" ({item.weight})" if item.weight else ""
+            print(f"  [{item.meal_type:12s}] {item.name:35s} {item.price:5.0f}₽{weight_str}")
+            if item.ingredients:
+                print(f"                 {', '.join(item.ingredients[:5])}")
+                if len(item.ingredients) > 5:
+                    print(f"                 +{len(item.ingredients) - 5} more...")
 
         return [item.to_dict() for item in unique_items]
 

@@ -26,8 +26,6 @@ try:
 except ImportError:
     OPENAI_AVAILABLE = False
 
-from scraper.scraper import MenuItem, MenuImageOCR
-
 
 VISION_OCR_PROMPT = """You are an OCR system specialized in reading Russian cafe menus.
 Look at this menu image and extract ALL menu items as a JSON array.
