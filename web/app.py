@@ -267,19 +267,28 @@ HTML_TEMPLATE = """
             const data = await res.json();
 
             const container = document.getElementById('comboResult');
-            if (data.items && data.items.length > 0) {
+            if (data.combos && data.combos.length > 0) {
                 container.innerHTML = `
-                    ${data.items.map(item => `
-                        <div class="combo-item">
-                            <span>${item.name} <small style="color:#666">(${item.meal_type})</small></span>
-                            <strong>${item.price}₽</strong>
-                        </div>
-                    `).join('')}
-                    <div class="combo-total">Total: ${data.total}₽</div>
+                    <div style="display:grid; gap:15px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
+                        ${data.combos.map(combo => `
+                            <div style="background:white; border-radius:8px; padding:15px;">
+                                <div style="font-weight:600; margin-bottom:10px; color:#1a5276;">${combo.label}</div>
+                                ${combo.items.map(item => `
+                                    <div style="display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid #f0f2f5; font-size:0.9rem;">
+                                        <span>${item.name}</span>
+                                        <strong>${item.price}₽</strong>
+                                    </div>
+                                `).join('')}
+                                <div style="font-weight:700; color:#1a5276; text-align:right; padding-top:8px; font-size:1rem;">
+                                    Total: ${combo.total}₽
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
                 `;
                 container.classList.add('show');
             } else {
-                container.innerHTML = '<p>Could not create a combo within this budget. Try increasing it!</p>';
+                container.innerHTML = '<p>Could not create combos within this budget. Try increasing it!</p>';
                 container.classList.add('show');
             }
         }
@@ -332,23 +341,45 @@ def get_combo():
             menu_by_type[mt] = []
         menu_by_type[mt].append(item)
 
-    combo = []
     combo_types = ['salad', 'soup', 'main course', 'drink']
+    combos = []
 
-    for mt in combo_types:
-        if mt in menu_by_type:
-            remaining = budget - sum(i.get('price', 0) for i in combo)
-            affordable = [i for i in menu_by_type[mt] if i.get('price', 0) <= remaining]
+    # Generate 3 combos: cheapest, balanced, premium
+    strategies = [
+        ('💰 Budget Combo', lambda items: items[0]),           # cheapest
+        ('⚖️ Balanced Combo', lambda items: items[len(items)//2]),  # middle
+        ('🌟 Premium Combo', lambda items: items[-1]),          # most expensive affordable
+    ]
+
+    for label, pick_fn in strategies:
+        combo = []
+        remaining_budget = budget
+        valid = True
+
+        for mt in combo_types:
+            if mt not in menu_by_type:
+                continue
+            affordable = sorted(
+                [i for i in menu_by_type[mt] if i.get('price', 0) <= remaining_budget],
+                key=lambda x: x.get('price', 0)
+            )
             if affordable:
-                affordable.sort(key=lambda x: x.get('price', 0))
-                combo.append(affordable[0])
+                item = pick_fn(affordable)
+                combo.append(item)
+                remaining_budget -= item.get('price', 0)
+            else:
+                valid = False
+                break
 
-    total = sum(i.get('price', 0) for i in combo)
+        if valid and combo:
+            combos.append({
+                'label': label,
+                'items': [{'name': i['name'], 'meal_type': i['meal_type'], 'price': i['price']} for i in combo],
+                'total': sum(i.get('price', 0) for i in combo)
+            })
+
     db.close()
-    return jsonify({
-        'items': [{'name': i['name'], 'meal_type': i['meal_type'], 'price': i['price']} for i in combo],
-        'total': total
-    })
+    return jsonify({'combos': combos})
 
 
 def main():
