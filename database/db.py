@@ -84,8 +84,28 @@ class MenuDatabase:
             "SELECT * FROM menu_items WHERE date = ? ORDER BY meal_type, name",
             (date,)
         )
-        return [dict(row) for row in cursor.fetchall()]
+        results = []
+        for row in cursor.fetchall():
+            item = dict(row)
+            # Parse ingredients JSON string back to list
+            if item.get('ingredients') and isinstance(item['ingredients'], str):
+                try:
+                    item['ingredients'] = json.loads(item['ingredients'])
+                except json.JSONDecodeError:
+                    item['ingredients'] = []
+            results.append(item)
+        return results
     
+    def _parse_row(self, row) -> Dict:
+        """Convert a DB row to dict, parsing ingredients JSON."""
+        item = dict(row)
+        if item.get('ingredients') and isinstance(item['ingredients'], str):
+            try:
+                item['ingredients'] = json.loads(item['ingredients'])
+            except json.JSONDecodeError:
+                item['ingredients'] = []
+        return item
+
     def get_latest_menu(self) -> List[Dict]:
         """Get the most recent menu available."""
         cursor = self.conn.cursor()
@@ -112,7 +132,7 @@ class MenuDatabase:
                 (meal_type,)
             )
         
-        return [dict(row) for row in cursor.fetchall()]
+        return [self._parse_row(row) for row in cursor.fetchall()]
     
     def search_items(self, query: str) -> List[Dict]:
         """Search menu items by name or description."""
@@ -125,7 +145,7 @@ class MenuDatabase:
             ORDER BY date DESC
         """, (search_pattern, search_pattern))
         
-        return [dict(row) for row in cursor.fetchall()]
+        return [self._parse_row(row) for row in cursor.fetchall()]
     
     def get_all_meal_types(self) -> List[str]:
         """Get all unique meal types in the database."""
@@ -140,7 +160,7 @@ class MenuDatabase:
             "SELECT * FROM menu_items WHERE price BETWEEN ? AND ? ORDER BY price",
             (min_price, max_price)
         )
-        return [dict(row) for row in cursor.fetchall()]
+        return [self._parse_row(row) for row in cursor.fetchall()]
     
     def clear_old_menus(self, keep_days: int = 7):
         """Remove menu items older than specified days."""
