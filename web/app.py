@@ -10,13 +10,18 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from flask import Flask, render_template_string, request, jsonify
-from database.db import MenuDatabase
-from nanobot.bot import MatrixCafeBot
 from datetime import datetime
 
 app = Flask(__name__)
-db = MenuDatabase('menu.db')
-bot = MatrixCafeBot(db)
+
+
+def get_db():
+    """Get a fresh database connection for this request."""
+    from database.db import MenuDatabase
+    from nanobot.bot import MatrixCafeBot
+    db = MenuDatabase('menu.db')
+    bot = MatrixCafeBot(db)
+    return db, bot
 
 
 HTML_TEMPLATE = """
@@ -289,21 +294,24 @@ HTML_TEMPLATE = """
 
 @app.route('/')
 def index():
-    # Get all available dates
+    db, _ = get_db()
     dates = sorted(db.conn.execute(
         "SELECT DISTINCT date FROM menu_items ORDER BY date DESC"
     ).fetchall(), key=lambda x: x[0], reverse=True)
     date_list = [row[0] for row in dates]
+    db.close()
     return render_template_string(HTML_TEMPLATE, dates=date_list)
 
 
 @app.route('/api/menu')
 def get_menu():
     date = request.args.get('date', '')
+    db, _ = get_db()
     if date:
         items = db.get_menu_by_date(date)
     else:
         items = db.get_latest_menu()
+    db.close()
     return jsonify(items)
 
 
@@ -311,14 +319,12 @@ def get_menu():
 def get_combo():
     date = request.args.get('date', '')
     budget = float(request.args.get('budget', 300))
-
-    # Get menu for the selected date
+    db, _ = get_db()
     if date:
         menu_items = db.get_menu_by_date(date)
     else:
         menu_items = db.get_latest_menu()
 
-    # Build combo: salad + soup + main + drink within budget
     menu_by_type = {}
     for item in menu_items:
         mt = item.get('meal_type', 'other')
@@ -334,11 +340,11 @@ def get_combo():
             remaining = budget - sum(i.get('price', 0) for i in combo)
             affordable = [i for i in menu_by_type[mt] if i.get('price', 0) <= remaining]
             if affordable:
-                # Pick cheapest
                 affordable.sort(key=lambda x: x.get('price', 0))
                 combo.append(affordable[0])
 
     total = sum(i.get('price', 0) for i in combo)
+    db.close()
     return jsonify({
         'items': [{'name': i['name'], 'meal_type': i['meal_type'], 'price': i['price']} for i in combo],
         'total': total
