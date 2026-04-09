@@ -364,8 +364,8 @@ FULL_MENU_TEMPLATE = """
     </div>
     <div class="container">
         <div class="date-selector">
-            {% for d in dates %}
-            <a href="/full-menu?date={{d}}" class="date-btn {{ 'active' if d == date else '' }}">{{d.slice(5)}}</a>
+            {% for d, label in dates %}
+            <a href="/full-menu?date={{d}}" class="date-btn {{ 'active' if d == date else '' }}">{{ label }}</a>
             {% endfor %}
         </div>
         {% for type_name, items in menu.items() %}
@@ -440,7 +440,10 @@ def full_menu():
         if k not in order:
             ordered[type_names.get(k, k)] = v
 
-    return render_template_string(FULL_MENU_TEMPLATE, dates=date_list, date=date, menu=ordered)
+    # Format dates for display (MM-DD)
+    dates_display = [(d, d[5:]) for d in date_list]
+
+    return render_template_string(FULL_MENU_TEMPLATE, dates=dates_display, date=date, menu=ordered)
 
 
 @app.route('/api/menu')
