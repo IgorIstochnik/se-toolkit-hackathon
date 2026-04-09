@@ -249,7 +249,7 @@ HTML_TEMPLATE = """
 
         async function getCombo() {
             const budget = document.getElementById('budget').value || 330;
-            const res = await fetch('/api/combo?budget=' + budget + '&date=' + currentDate + '&count=5');
+            const res = await fetch('/api/combo?budget=' + budget + '&date=' + currentDate + '&count=8');
             const data = await res.json();
 
             const container = document.getElementById('comboResult');
@@ -431,7 +431,7 @@ def get_menu():
 def get_combo():
     date = request.args.get('date', '')
     budget = float(request.args.get('budget', 330))
-    count = int(request.args.get('count', 5))
+    count = int(request.args.get('count', 8))
     db, _ = get_db()
     if date:
         menu_items = db.get_menu_by_date(date)
@@ -446,36 +446,68 @@ def get_combo():
         menu_by_type[mt].append(item)
 
     combo_types = ['salad', 'soup', 'main course', 'drink']
+    available_types = [t for t in combo_types if t in menu_by_type]
     combos = []
+    existing = []
 
+    # Phase 1: Generate full combos (all available categories)
     for attempt in range(count * 10):
         if len(combos) >= count:
             break
-
         combo = []
         remaining = budget
         valid = True
-
-        for mt in combo_types:
-            if mt not in menu_by_type:
-                continue
+        for mt in available_types:
             affordable = [i for i in menu_by_type[mt] if i.get('price', 0) <= remaining]
             if not affordable:
                 valid = False
                 break
-            idx = (attempt + combo_types.index(mt)) % len(affordable)
+            idx = (attempt + available_types.index(mt)) % len(affordable)
             combo.append(affordable[idx])
             remaining -= combo[-1].get('price', 0)
-
-        if valid and combo:
+        if valid and combo and len(combo) == len(available_types):
             combo_key = tuple(sorted(i['name'] for i in combo))
-            existing = [tuple(sorted(x['name'] for x in c['items'])) for c in combos]
             if combo_key not in existing:
+                existing.append(combo_key)
                 combos.append({
-                    'label': f'Combo #{len(combos)+1}',
+                    'label': f'🍽️ Combo #{len(combos)+1}',
                     'items': [{'name': i['name'], 'meal_type': i['meal_type'], 'price': i['price']} for i in combo],
-                    'total': sum(i.get('price', 0) for i in combo)
+                    'total': sum(i.get('price', 0) for i in combo),
+                    'full': True
                 })
+
+    # Phase 2: Generate partial combos for smaller budgets
+    if len(combos) < count:
+        import random
+        random.seed(42)  # consistent results
+        for attempt in range((count - len(combos)) * 20):
+            if len(combos) >= count:
+                break
+            # Randomly skip 1-2 categories for partial combos
+            n_skip = random.randint(1, min(2, len(available_types) - 1))
+            skip_types = set(random.sample(available_types, n_skip))
+
+            combo = []
+            remaining = budget
+            for mt in available_types:
+                if mt in skip_types:
+                    continue
+                affordable = [i for i in menu_by_type[mt] if i.get('price', 0) <= remaining]
+                if affordable:
+                    idx = (attempt + available_types.index(mt)) % len(affordable)
+                    combo.append(affordable[idx])
+                    remaining -= combo[-1].get('price', 0)
+
+            if len(combo) >= 2:
+                combo_key = tuple(sorted(i['name'] for i in combo))
+                if combo_key not in existing:
+                    existing.append(combo_key)
+                    combos.append({
+                        'label': f'🥣 Quick Combo #{len(combos)+1} ({len(combo)} items)',
+                        'items': [{'name': i['name'], 'meal_type': i['meal_type'], 'price': i['price']} for i in combo],
+                        'total': sum(i.get('price', 0) for i in combo),
+                        'full': False
+                    })
 
     db.close()
     return jsonify({'combos': combos})
