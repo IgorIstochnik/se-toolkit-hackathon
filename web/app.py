@@ -180,7 +180,7 @@ HTML_TEMPLATE = """
             <h3>💡 Balanced Lunch Combo</h3>
             <div class="budget-input">
                 <span>Budget:</span>
-                <input type="number" id="budget" placeholder="300" value="300" min="50" max="1000">
+                <input type="number" id="budget" placeholder="330" value="330" min="50" max="1000">
                 <span>₽</span>
                 <button onclick="getCombo()">Find Combo</button>
             </div>
@@ -295,6 +295,7 @@ HTML_TEMPLATE = """
 
         renderDates();
         loadMenu();
+        getCombo();
     </script>
 </body>
 </html>
