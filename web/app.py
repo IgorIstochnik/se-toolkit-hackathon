@@ -68,6 +68,8 @@ HTML_TEMPLATE = """
             cursor: pointer;
             font-size: 0.9rem;
             transition: all 0.2s;
+            text-decoration: none;
+            display: inline-block;
         }
         .date-btn.active, .date-btn:hover {
             background: #2e86c1;
@@ -120,6 +122,7 @@ HTML_TEMPLATE = """
             gap: 10px;
             align-items: center;
             margin-bottom: 15px;
+            flex-wrap: wrap;
         }
         .budget-input input {
             padding: 10px 15px;
@@ -139,26 +142,8 @@ HTML_TEMPLATE = """
             transition: background 0.2s;
         }
         .budget-input button:hover { background: #1a5276; }
-        .combo-result {
-            background: white;
-            border-radius: 8px;
-            padding: 15px;
-            display: none;
-        }
+        .combo-result { display: none; }
         .combo-result.show { display: block; }
-        .combo-item {
-            display: flex;
-            justify-content: space-between;
-            padding: 8px 0;
-            border-bottom: 1px solid #f0f2f5;
-        }
-        .combo-total {
-            font-weight: 700;
-            color: #1a5276;
-            text-align: right;
-            padding-top: 10px;
-            font-size: 1.1rem;
-        }
         .footer {
             text-align: center;
             padding: 20px;
@@ -207,7 +192,7 @@ HTML_TEMPLATE = """
         function renderDates() {
             const container = document.getElementById('dates');
             container.innerHTML = dates.map(d =>
-                `<button class="date-btn ${d === currentDate ? 'active' : ''}" onclick="selectDate('${d}')">${d.slice(5)}</button>`
+                '<a href="/full-menu?date=' + d + '" class="date-btn ' + (d === currentDate ? 'active' : '') + '" onclick="selectDate(\\'' + d + '\\'); event.preventDefault();">' + d.substring(5) + '</a>'
             ).join('');
         }
 
@@ -215,10 +200,11 @@ HTML_TEMPLATE = """
             currentDate = date;
             renderDates();
             loadMenu();
+            getCombo();
         }
 
         async function loadMenu() {
-            const res = await fetch(`/api/menu?date=${currentDate}`);
+            const res = await fetch('/api/menu?date=' + currentDate);
             const data = await res.json();
             const container = document.getElementById('menu');
 
@@ -245,53 +231,41 @@ HTML_TEMPLATE = """
 
             container.innerHTML = order
                 .filter(s => sections[s])
-                .map(type => `
-                    <div class="section">
-                        <div class="section-header">
-                            <span>${names[type] || type}</span>
-                            <span>${sections[type].length} items</span>
-                        </div>
-                        ${sections[type].map(item => `
-                            <div class="item">
-                                <div>
-                                    <div class="item-name">${item.name}</div>
-                                    <div class="item-meta">
-                                        ${item.weight ? `<span>${item.weight}</span>` : ''}
-                                        ${item.ingredients ? `<span>${item.ingredients.slice(0, 3).join(', ')}${item.ingredients.length > 3 ? '...' : ''}</span>` : ''}
-                                    </div>
-                                </div>
-                                <div class="item-price">${item.price}₽</div>
-                            </div>
-                        `).join('')}
-                    </div>
-                `).join('');
+                .map(type => {
+                    const items = sections[type];
+                    const itemsHtml = items.map(item => {
+                        const weight = item.weight ? '<span>' + item.weight + '</span>' : '';
+                        const ings = item.ingredients ? '<span>' + item.ingredients.slice(0, 3).join(', ') + (item.ingredients.length > 3 ? '...' : '') + '</span>' : '';
+                        return '<div class="item">' +
+                            '<div><div class="item-name">' + item.name + '</div>' +
+                            '<div class="item-meta">' + weight + ings + '</div></div>' +
+                            '<div class="item-price">' + item.price + '₽</div></div>';
+                    }).join('');
+                    return '<div class="section">' +
+                        '<div class="section-header"><span>' + (names[type] || type) + '</span>' +
+                        '<span>' + items.length + ' items</span></div>' + itemsHtml + '</div>';
+                }).join('');
         }
 
         async function getCombo() {
             const budget = document.getElementById('budget').value || 330;
-            const res = await fetch(`/api/combo?budget=${budget}&date=${currentDate}&count=5`);
+            const res = await fetch('/api/combo?budget=' + budget + '&date=' + currentDate + '&count=5');
             const data = await res.json();
 
             const container = document.getElementById('comboResult');
             if (data.combos && data.combos.length > 0) {
-                container.innerHTML = `
-                    <div style="display:grid; gap:15px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
-                        ${data.combos.map(combo => `
-                            <div style="background:white; border-radius:10px; padding:15px; box-shadow:0 2px 8px rgba(0,0,0,0.08);">
-                                <div style="font-weight:700; margin-bottom:10px; color:#1a5276; font-size:1rem;">${combo.label}</div>
-                                ${combo.items.map(item => `
-                                    <div style="display:flex; justify-content:space-between; padding:5px 0; border-bottom:1px solid #f0f2f5; font-size:0.85rem;">
-                                        <span>${item.name}</span>
-                                        <strong style="color:#1a5276;">${item.price}₽</strong>
-                                    </div>
-                                `).join('')}
-                                <div style="font-weight:700; color:#1a5276; text-align:right; padding-top:8px; font-size:1rem;">
-                                    Total: ${combo.total}₽
-                                </div>
-                            </div>
-                        `).join('')}
-                    </div>
-                `;
+                container.innerHTML = '<div style="display:grid; gap:15px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">' +
+                    data.combos.map(combo =>
+                        '<div style="background:white; border-radius:10px; padding:15px; box-shadow:0 2px 8px rgba(0,0,0,0.08);">' +
+                        '<div style="font-weight:700; margin-bottom:10px; color:#1a5276; font-size:1rem;">' + combo.label + '</div>' +
+                        combo.items.map(item =>
+                            '<div style="display:flex; justify-content:space-between; padding:5px 0; border-bottom:1px solid #f0f2f5; font-size:0.85rem;">' +
+                            '<span>' + item.name + '</span>' +
+                            '<strong style="color:#1a5276;">' + item.price + '₽</strong></div>'
+                        ).join('') +
+                        '<div style="font-weight:700; color:#1a5276; text-align:right; padding-top:8px; font-size:1rem;">' +
+                        'Total: ' + combo.total + '₽</div></div>'
+                    ).join('') + '</div>';
                 container.classList.add('show');
             } else {
                 container.innerHTML = '<p style="text-align:center;color:#666;">No combos found for this budget. Try increasing it!</p>';
@@ -420,7 +394,6 @@ def full_menu():
     items = db.get_menu_by_date(date) if date else db.get_latest_menu()
     db.close()
 
-    # Group by type
     menu = {}
     type_names = {
         'salad': '🥗 Salads', 'soup': '🍲 Soups', 'main course': '🍖 Main Course',
@@ -432,17 +405,13 @@ def full_menu():
             menu[mt] = []
         menu[mt].append(item)
 
-    # Sort sections
     order = ['salad', 'soup', 'main course', 'side dish', 'drink', 'bread']
     ordered = {type_names.get(k, k): menu[k] for k in order if k in menu}
-    # Add any extra types
     for k, v in menu.items():
         if k not in order:
             ordered[type_names.get(k, k)] = v
 
-    # Format dates for display (MM-DD)
     dates_display = [(d, d[5:]) for d in date_list]
-
     return render_template_string(FULL_MENU_TEMPLATE, dates=dates_display, date=date, menu=ordered)
 
 
@@ -479,8 +448,7 @@ def get_combo():
     combo_types = ['salad', 'soup', 'main course', 'drink']
     combos = []
 
-    # Generate up to N distinct combos by cycling through options
-    for attempt in range(count * 10):  # try more times than needed
+    for attempt in range(count * 10):
         if len(combos) >= count:
             break
 
@@ -495,14 +463,14 @@ def get_combo():
             if not affordable:
                 valid = False
                 break
-            # Pick based on attempt number to get variety
             idx = (attempt + combo_types.index(mt)) % len(affordable)
             combo.append(affordable[idx])
             remaining -= combo[-1].get('price', 0)
 
         if valid and combo:
             combo_key = tuple(sorted(i['name'] for i in combo))
-            if combo_key not in [tuple(sorted(x['name'] for x in c['items'])) for c in combos]:
+            existing = [tuple(sorted(x['name'] for x in c['items'])) for c in combos]
+            if combo_key not in existing:
                 combos.append({
                     'label': f'Combo #{len(combos)+1}',
                     'items': [{'name': i['name'], 'meal_type': i['meal_type'], 'price': i['price']} for i in combo],
