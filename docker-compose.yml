@@ -1,17 +1,16 @@
 version: '3.8'
 
 services:
-  nanobot:
+  webapp:
     build: .
-    container_name: matrix-cafe-bot
+    container_name: matrix-cafe-web
+    ports:
+      - "8080:8080"
     volumes:
       - ./data:/app/data
-    stdin_open: true
-    tty: true
     environment:
       - PYTHONUNBUFFERED=1
-      - MODE=bot
-    command: ["python", "-u", "nanobot/bot.py"]
+    restart: unless-stopped
 
   scheduler:
     build: .
@@ -20,5 +19,5 @@ services:
       - ./data:/app/data
     environment:
       - PYTHONUNBUFFERED=1
-      - MODE=scheduler
     command: ["python", "-u", "scraper/scheduler.py"]
+    restart: unless-stopped

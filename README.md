@@ -4,9 +4,38 @@ An LLM-powered nanobot that helps Innopolis University students choose meals at 
 
 ## Demo
 
-> _Screenshot of the nanobot recommending a meal combo_
-> <img width="923" height="947" alt="image" src="https://github.com/user-attachments/assets/ccc89018-9e19-472a-8431-06c0767511a3" />
+The bot displays today's Matrix cafe menu with prices, weights, and ingredients:
 
+```
+**SALAD**:
+  • Салат Днестровский - 60₽ 120г
+  • Салат Зеленый с ветчиной - 75₽ 120г
+  • Салат Шопский - 175₽ 120г
+  • Салат с курицей и ананасом - 150₽ 120г
+
+**SOUP**:
+  • Суп картофельный с горохом и курицей - 100₽ 250г
+  • Щи Зеленые со шпинатом и яйцом - 115₽ 250г
+  • Лагман с говядиной - 200₽ 250г
+
+**MAIN COURSE**:
+  • Голубцы - 110₽ 100г
+  • Котлета куриная - 120₽ 100г
+  • Чахохбили тушеная курица с овощами - 125₽ 125г
+  • Свинина на шпажках в медовой глазури - 195₽ 100г
+  • Филе горбуши с овощами - 250₽ 100г
+
+**SIDE DISH**:
+  • Перловка с зеленым горошком - 150₽ 150г
+  • Рис отварной - 150₽ 150г
+
+**DRINK**:
+  • Напиток на выбор - 45₽
+
+**BREAD**:
+  • Хлеб Пшеничный - 0₽ 50г
+  • Хлеб Сельский - 0₽ 50г
+```
 
 ## Product Context
 
@@ -27,20 +56,24 @@ A chat-based nanobot that:
 ## Features
 
 ### Implemented (Version 1)
-- ✅ Telegram channel scraper that extracts menu images from `@matrixfood`
-- ✅ OCR-based menu text extraction (Tesseract with Russian + English support)
-- ✅ Menu text parser that converts OCR output into structured items with sections (salads, soups, etc.)
-- ✅ SQLite database for storing menu items with prices, ingredients, and meal types
-- ✅ LLM-powered nanobot for meal recommendations
-- ✅ Interactive CLI interface
-- ✅ Filter by meal type (salad, soup, main course, drink, dessert)
+- ✅ Menu scraper with Telegram channel image extraction (`@matrixfood`)
+- ✅ Menu image download and OCR processing pipeline
+- ✅ Text-based menu parser supporting Russian cuisine format
+- ✅ SQLite database storing menu items with prices, weights, and ingredients
+- ✅ Multi-day menu support (04-07, 04-08, 04-09 populated)
+- ✅ Interactive CLI nanobot for meal queries
+- ✅ Filter by meal type (salad, soup, main course, side dish, drink, bread)
 - ✅ Filter by budget
+- ✅ Weight display (e.g., 120г, 250г)
 
 ### Implemented (Version 2)
 - ✅ Balanced meal combo generator with budget awareness
+- ✅ Ingredient display for each dish
 - ✅ Menu scheduler for periodic auto-refresh
-- ✅ Docker configuration with Tesseract OCR installed
+- ✅ Vision LLM OCR option (GPT-4o) for higher accuracy
+- ✅ Docker configuration for all services
 - ✅ Deployment script (`./deploy.sh`)
+- ✅ Real data: 3 days of actual Matrix cafe menus (44+ unique items)
 
 ### Not Yet Implemented
 - [ ] Web UI frontend
@@ -183,10 +216,10 @@ se-toolkit-hackathon/
 ```
 
 ## Tech Stack
-- **Backend**: Python 3.11
-- **Database**: SQLite
-- **Agent**: Custom nanobot with intent parsing
-- **Web Scraping**: BeautifulSoup + Requests
-- **OCR**: Tesseract (Russian + English)
+- **Backend**: Python 3.12
+- **Database**: SQLite (multi-day menu storage)
+- **Agent**: Custom nanobot with intent parsing and combo generation
+- **Web Scraping**: BeautifulSoup + Requests (Telegram channel `t.me/s/matrixfood`)
+- **OCR**: Tesseract (rus+eng) + optional GPT-4o Vision API
 - **Image Processing**: Pillow
-- **Deployment**: Docker Compose
+- **Deployment**: Docker Compose (Tesseract + Python)
