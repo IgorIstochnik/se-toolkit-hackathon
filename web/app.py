@@ -172,7 +172,7 @@ HTML_TEMPLATE = """
             <div class="combo-result" id="comboResult"></div>
         </div>
 
-        <div id="menu"></div>
+        <div id="menu" style="display:none;"></div>
 
         <div style="text-align:center; margin: 30px 0;">
             <a href="/full-menu?date={{ dates[0] if dates else '' }}" style="display:inline-block; padding:12px 30px; background:linear-gradient(135deg,#1a5276,#2e86c1); color:white; text-decoration:none; border-radius:25px; font-weight:600; font-size:1rem; box-shadow:0 4px 15px rgba(26,82,118,0.3);">
@@ -199,7 +199,6 @@ HTML_TEMPLATE = """
         function selectDate(date) {
             currentDate = date;
             renderDates();
-            loadMenu();
             getCombo();
         }
 
@@ -274,7 +273,6 @@ HTML_TEMPLATE = """
         }
 
         renderDates();
-        loadMenu();
         getCombo();
     </script>
 </body>
