@@ -415,26 +415,48 @@ class MatrixCafeScraper:
         print(f"\nTotal: extracted {len(all_items)} menu items")
         return [item.to_dict() for item in all_items]
 
-    def scrape_from_image_file(self, filepath: str, date: str = "") -> List[Dict]:
-        """Scrape menu from a local image file."""
-        print(f"Processing local image: {filepath}")
+    def scrape_from_images(self, filepaths: List[str], date: str = "") -> List[Dict]:
+        """Scrape menu from multiple local image files."""
+        all_items = []
+        for filepath in filepaths:
+            print(f"\nProcessing: {filepath}")
+            if not os.path.exists(filepath):
+                print(f"  File not found, skipping")
+                continue
 
-        ocr_text = self.ocr_image_file(filepath)
-        if not ocr_text.strip():
-            print("OCR returned empty text")
+            ocr_text = self.ocr_image_file(filepath)
+            if not ocr_text.strip():
+                print("  OCR returned empty text")
+                continue
+
+            items = self.parse_menu_from_ocr(ocr_text, date)
+            if items:
+                print(f"  Extracted {len(items)} items")
+                all_items.extend(items)
+            else:
+                print("  No items extracted")
+                # Show first lines for debugging
+                for line in ocr_text.strip().split('\n')[:3]:
+                    print(f"    {line}")
+
+        if not all_items:
+            print("\nNo menu items extracted from any image. Falling back to sample data.")
             return self.parse_sample_menu()
 
-        print(f"OCR text ({len(ocr_text)} chars):")
-        for line in ocr_text.strip().split('\n')[:15]:
-            print(f"  {line}")
+        # Deduplicate by name + date
+        seen = set()
+        unique_items = []
+        for item in all_items:
+            key = (item.name, item.price, item.date)
+            if key not in seen:
+                seen.add(key)
+                unique_items.append(item)
 
-        items = self.parse_menu_from_ocr(ocr_text, date)
-        if not items:
-            print("No menu items extracted")
-            return self.parse_sample_menu()
+        print(f"\nExtracted {len(unique_items)} unique menu items from {len(filepaths)} image(s):")
+        for item in unique_items:
+            print(f"  [{item.meal_type:12s}] {item.name:25s} {item.price:5.0f}₽")
 
-        print(f"\nExtracted {len(items)} menu items:")
-        return [item.to_dict() for item in items]
+        return [item.to_dict() for item in unique_items]
 
     def scrape_from_text(self, text: str, date: str = "") -> List[Dict]:
         """Parse menu directly from text (e.g., pasted OCR output)."""
@@ -461,16 +483,18 @@ def main():
     import argparse
 
     parser = argparse.ArgumentParser(description="Matrix Cafe Menu Scraper")
-    parser.add_argument("--image", type=str, help="Path to local menu image file")
+    parser.add_argument("--images", nargs="+", type=str, help="Paths to local menu image files")
+    parser.add_argument("--image", type=str, help="Path to single menu image file (legacy)")
     parser.add_argument("--text", type=str, help="Pasted OCR text to parse")
     parser.add_argument("--date", type=str, default="", help="Menu date (YYYY-MM-DD)")
     args = parser.parse_args()
 
     scraper = MatrixCafeScraper()
 
-    if args.image:
-        # Mode: local image file
-        menu = scraper.scrape_from_image_file(args.image, args.date)
+    if args.images or args.image:
+        # Mode: local image file(s)
+        filepaths = args.images or [args.image]
+        menu = scraper.scrape_from_images(filepaths, args.date)
     elif args.text:
         # Mode: pasted text
         menu = scraper.scrape_from_text(args.text, args.date)

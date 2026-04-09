@@ -25,7 +25,7 @@ from typing import List, Dict, Optional
 
 try:
     from telethon import TelegramClient
-    from telethon.network import ConnectionTcpMTProxy
+    from telethon.network import ConnectionTcpMTProxyRandomizedIntermediate
     TELETHON_AVAILABLE = True
 except ImportError:
     TELETHON_AVAILABLE = False
@@ -74,15 +74,16 @@ class TelethonMenuScraper:
         """Create TelegramClient with MTProto proxy."""
         proxy = self.config["proxy"]
 
-        # Telethon MTProto proxy format:
-        # (proxy_type_string, host, port, secret)
-        mtproto_proxy = ("mtproto", proxy[0], proxy[1], proxy[2])
+        # MTProto proxy format: (host, port, secret)
+        # Secret can be hex string or base64
+        secret = proxy[2]
 
         return TelegramClient(
             self.config["session_name"],
             self.config["api_id"],
             self.config["api_hash"],
-            proxy=mtproto_proxy,
+            connection=ConnectionTcpMTProxyRandomizedIntermediate,
+            proxy=("mtproto", proxy[0], proxy[1], secret),
             connection_retries=10,
             retry_delay=2,
         )
@@ -198,12 +199,14 @@ class TelethonMenuScraper:
 async def login():
     """Interactive login to create session file."""
     config = TELEGRAM_CONFIG
+    proxy = config["proxy"]
 
     client = TelegramClient(
         config["session_name"],
         config["api_id"],
         config["api_hash"],
-        proxy=config["proxy"],
+        connection=ConnectionTcpMTProxyRandomizedIntermediate,
+        proxy=("mtproto", proxy[0], proxy[1], proxy[2]),
     )
 
     print("Starting login via proxy...")
